@@ -13,7 +13,7 @@ supabase: Client = create_client(url, key)
 st.set_page_config(page_title="Howl Official", layout="wide")
 st.title("🐺 人狼サークルHowlへようこそ")
 
-page = st.sidebar.selectbox("Menu", ["About Us (Howlとは)","Leaderboard (ランキング)", "Record Result (勝敗入力)", "Social Media (SNS)"])
+page = st.sidebar.selectbox("Menu", ["About Us (Howlとは)","Leaderboard (ランキング)", "Record Result (勝敗入力)"])
 
 # --- 関数 ---
 def load_data():
@@ -27,6 +27,14 @@ def get_players():
     """プレイヤー名簿を取得"""
     response = supabase.table("players").select("name").eq("is_active", True).execute()
     return [row["name"] for row in response.data]
+
+def assign_percentile_title(rank_val, total_players):
+    # p: 累積分布関数(CDF)における位置の近似
+    p = rank_val / total_players
+    if p <= 0.1: return "💎 S-Class (Top 10%)"
+    if p <= 0.3: return "✨ A-Class (Top 30%)"
+    if p <= 0.6: return "👣 B-Class (Top 60%)"
+    return "🔰 Rookie"
 
 
 
@@ -76,6 +84,14 @@ if page == "About Us (Howlとは)":
     # 入会案内
     st.success("✨ Howlでは新しい仲間を随時募集しています！少しでも興味を持ったら、下記のSNSリンクからお気軽にご連絡ください。")
 
+    st.subheader("🔗 Our Social Media")
+    
+    st.markdown("🔗 [公式Line](https://line.me/R/ti/p/@290bixgt)")
+    st.markdown("🔗 [Instagram](https://www.instagram.com/keio_howl)")
+    st.markdown("🔗 [X (Twitter)](https://x.com/keio_howl?s=21&t=TriTKMLwbruJApWYrQQ3eA)")
+    st.markdown("🔗 [YouTube](https://youtube.com/channel/UCpXfFc7T2f0tG6mBApIfnlA?si=QqCmmo-xRIMLsGMq)")
+
+
 # --- ページ1: ランキング (数理モデル実装) ---
 elif page == "Leaderboard (ランキング)":
     st.header("🏆 Player Rating")
@@ -109,16 +125,8 @@ elif page == "Leaderboard (ランキング)":
         # 全体集合における相対位置(Percentile)に基づくクラス分類
         total_players = len(ranking)
 
-        def assign_percentile_title(rank_val):
-            # p: 累積分布関数(CDF)における位置の近似
-            p = rank_val / total_players
-            if p <= 0.1: return "💎 S-Class (Top 10%)"
-            if p <= 0.3: return "✨ A-Class (Top 30%)"
-            if p <= 0.6: return "👣 B-Class (Top 60%)"
-            return "🔰 Rookie"
-
         # 3.3 関数適用 (写像: Rank -> Title)
-        ranking["Title"] = ranking["Rank"].apply(assign_percentile_title)
+        ranking["Title"] = ranking["Rank"].apply(assign_percentile_title, total_players=total_players)
         
         # ===================================================
 
@@ -217,14 +225,3 @@ elif page == "Record Result (勝敗入力)":
             else:
                 st.info("削除できるデータがありません。")
 
-# --- ページ3: SNSリンク ---
-elif page == "Social Media (SNS)":
-    st.header("🔗 Our Social Media")
-    st.markdown("Here you can find our official social media channels:")
-    
-    st.markdown("""
-    - 公式Line: [Howl Official Instagram](https://line.me/R/ti/p/@290bixgt)
-    - Instagram: [Howl Official Instagram](https://www.instagram.com/keio_howl)
-    - X (Twitter): [Howl Official X Account](https://x.com/keio_howl?s=21&t=TriTKMLwbruJApWYrQQ3eA)
-    - YouTube: [Howl Official YouTube Channel](https://youtube.com/channel/UCpXfFc7T2f0tG6mBApIfnlA?si=QqCmmo-xRIMLsGMq)
-    """)
