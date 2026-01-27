@@ -40,15 +40,18 @@ def assign_percentile_title(rank_val, total_players):
 
 # --- ページ: About Us (Howlとは) ---
 if page == "About Us (Howlとは)":
-    st.header("👀 About Howl")
+    st.header("About Us")
     
     # イントロダクション
-    st.subheader("Welcome to Howl - 人狼をもっと身近に、もっと楽しく")
+    st.subheader("Welcome to Howl ~ 人狼をもっと身近に、もっと楽しく ~")
     st.write("""
     慶應義塾大学を拠点に活動する人狼サークル「Howl」は、
     「誰もが熱中できる居場所」を目指して活動しています。
     """)
-
+    
+    st.write("")
+    st.write("")
+    
     # 3つの特徴をカラムで表示
     col1, col2, col3 = st.columns(3)
     with col1:
