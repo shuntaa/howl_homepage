@@ -1,0 +1,45 @@
+あなたは熟練したPythonエンジニアです。
+私のサークル「Howl」のWebアプリ（Streamlit製）を作成してください。
+今回はデータ保存先とは、**Supabase (PostgreSQL)** を使用します。
+また、データ入力画面には簡易的な**パスワード認証**を実装してください。
+
+## 1. プロジェクトの概要
+* サークル紹介および、メンバーの勝敗・得点を記録・閲覧できるWebアプリ。
+* 閲覧は誰でも可能だが、データ入力（戦績登録）はパスワードを知っている幹部のみが可能。
+
+## 2. 技術スタック
+* **Frontend/Backend:** Streamlit
+* **Database:** Supabase (PostgreSQL)
+* **Driver:** `supabase-py` (Python client)
+* **Data Processing:** Pandas
+
+## 3. 機能要件
+
+### A. ページ構成（サイドバーで切り替え）
+1.  **Home（サークル紹介）**
+    * サークルの紹介テキストと画像エリア。
+2.  **Leaderboard（ランキング - 全員閲覧可）**
+    * Supabaseから戦績データを全件取得(`SELECT *`)。
+    * Pandasで集計し、プレイヤーごとの「勝利数」「敗北数」「得点」を計算してテーブル表示。
+3.  **Admin / Record Score（戦績入力 - 要パスワード）**
+    * ページを開くとまずパスワード入力フォームのみが表示される。
+    * `st.secrets` に設定されたパスワードと一致した場合のみ、以下の入力フォームが表示される。
+        * 日付、ゲーム種別、プレイヤー名とスコア（動的に行を追加できるUIなどが望ましい）。
+    * 「登録」ボタンでSupabaseのテーブルにデータを `INSERT` する。
+
+## 4. データベース設計（Supabase）
+以下のテーブル作成用SQL（DDL）も提示すること。
+* Table: `match_results`
+    * `id` (int8, primary key)
+    * `created_at` (timestamptz)
+    * `game_date` (date)
+    * `game_type` (text)
+    * `player_name` (text)
+    * `score` (float/int)
+    * `memo` (text)
+    * ※1試合で複数人のレコードが入る想定（正規化はあえて緩くし、扱いやすさ重視でフラットな構造とする）。
+
+## 5. 出力への要望
+* **ファイル構成:** `app.py`, `requirements.txt`, `.streamlit/secrets.toml` (雛形) を提示すること。
+* **認証ロジック:** `st.session_state` を用いて、一度ログインしたらリロードしても認証状態が維持されるような工夫があれば盛り込むこと。
+* **SQL:** SupabaseのSQLエディタに貼り付けるだけでテーブルが作れるSQL文を提供すること。
