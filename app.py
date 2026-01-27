@@ -37,30 +37,54 @@ if page == "Leaderboard (ランキング)":
     if df.empty:
         st.info("まだ対戦データがありません。")
     else:
-        # 1. プレイヤーごとの勝利数(w)と総対戦数(n)を集計
-        # is_winには 1(勝) か 0(負) が入っているので、sumをとれば勝利数になります
+        # 1. 集計: プレイヤーごとの勝利数(w)と総対戦数(n)
         stats = df.groupby("player_name")["is_win"].agg(
             w="sum",   # 勝利数 (Wins)
             n="count"  # 総参加数 (Total Games)
         ).reset_index()
         
-        # 2. 指定の関数でスコア計算
-        # Score = ((w + 1) / (n + 2)) * log(n + 1)
-        # ※np.log は自然対数(ln)です。常用対数にしたい場合は np.log10 に変えてください
+        # 2. スコア計算: Score = ((w + 1) / (n + 2)) * ln(n + 1) * 100
         stats["Score"] = ((stats["w"] + 1) / (stats["n"] + 2)) * np.log(stats["n"] + 1) * 100
         
-        # 3. 表示用に整える
-        # スコアが高い順にソート
+        # 3. ソート: スコア降順
         ranking = stats.sort_values("Score", ascending=False)
-        ranking.index = range(1, len(ranking) + 1)
         
+        # ===================================================
+        # [追加実装] ランクと称号の付与 (Stratification)
+        # ===================================================
+        
+        # 3.1 順位生成 (同点は最小ランクを採用する 'min' メソッド)
+        # 数学的定義: Rank(x_i) = 1 + |{x_j | Score(x_j) > Score(x_i)}|
+        ranking["Rank"] = ranking["Score"].rank(ascending=False, method='min').astype(int)
+
+        # 3.2 称号マッピング関数の定義
+        # 全体集合における相対位置(Percentile)に基づくクラス分類
+        total_players = len(ranking)
+
+        def assign_percentile_title(rank_val):
+            # p: 累積分布関数(CDF)における位置の近似
+            p = rank_val / total_players
+            if p <= 0.1: return "💎 S-Class (Top 10%)"
+            if p <= 0.3: return "✨ A-Class (Top 30%)"
+            if p <= 0.6: return "👣 B-Class (Top 60%)"
+            return "🔰 Rookie"
+
+        # 3.3 関数適用 (写像: Rank -> Title)
+        ranking["Title"] = ranking["Rank"].apply(assign_percentile_title)
+        
+        # ===================================================
+
+        # 4. 表示用整形
         # スコアを見やすく丸める
         ranking["Score"] = ranking["Score"].round(0)
         
-        # カラム名の整理
-        ranking = ranking.rename(columns={"w": "Wins", "n": "Games"})
+        # カラム名の整理と列の並び替え
+        # ユーザーが直感的に見やすい順序: Rank -> Title -> Name -> Score ...
+        ranking = ranking.rename(columns={"w": "Wins", "n": "Games", "player_name": "Player"})
         
-        st.dataframe(ranking, use_container_width=True)
+        # 最終的な表示列の選択と順序指定
+        display_columns = ["Rank", "Title", "Player", "Score", "Wins", "Games"]
+        st.dataframe(ranking[display_columns].set_index("Rank"), use_container_width=True)
         
         with st.expander("対戦履歴ログ"):
             st.dataframe(df.sort_values("game_date", ascending=False))
@@ -89,44 +113,39 @@ elif page == "Record Result (勝敗入力)":
             col1, col2 = st.columns(2)
             with col1:
                 game_date = st.date_input("日付", date.today())
-                # game_type は不要になったので削除
             with col2:
                 memo = st.text_input("メモ (任意)")
             
             st.write("---")
             st.write("勝者と敗者を選択してください")
             
-            # 勝者と敗者をそれぞれ選ばせるUI
-            # (同じ人が両方選ばれないように注意が必要ですが、まずはシンプルに実装)
             winners = st.multiselect("🏅 勝者 (Winners)", options=player_options)
             losers = st.multiselect("💀 敗者 (Losers)", options=player_options)
             
             submitted = st.form_submit_button("登録する")
             
             if submitted:
-                # バリデーション: 勝者も敗者もいない、または重複している場合
+                # 集合演算による重複チェック
                 if not winners and not losers:
                     st.error("参加者が選択されていません")
-                elif set(winners) & set(losers): # 積集合で重複チェック
+                elif set(winners) & set(losers): 
                     st.error("同じプレイヤーが勝者と敗者の両方に含まれています！")
                 else:
                     insert_data = []
                     
-                    # 勝者データ (is_win = 1)
                     for p in winners:
                         insert_data.append({
                             "game_date": str(game_date),
                             "player_name": p,
-                            "is_win": 1, # 勝ちフラグ
+                            "is_win": 1, 
                             "memo": memo
                         })
                     
-                    # 敗者データ (is_win = 0)
                     for p in losers:
                         insert_data.append({
                             "game_date": str(game_date),
                             "player_name": p,
-                            "is_win": 0, # 負けフラグ
+                            "is_win": 0, 
                             "memo": memo
                         })
                     
@@ -140,12 +159,10 @@ elif page == "Record Result (勝敗入力)":
         st.subheader("⚠️ 直近の登録をキャンセル")
 
         if st.button("最後に登録した1件（全参加者分）を削除する"):
-            # 1. 最後に登録された created_at を特定
             last_record = supabase.table("match_results").select("created_at").order("created_at", desc=True).limit(1).execute()
             
             if last_record.data:
                 last_time = last_record.data[0]["created_at"]
-                # 2. その同じ日時に登録されたデータをすべて削除（一度の登録で複数人分入るため）
                 supabase.table("match_results").delete().eq("created_at", last_time).execute()
                 st.warning(f"時刻 {last_time} のデータを削除しました。")
                 st.rerun()
@@ -163,5 +180,3 @@ elif page == "Social Media (SNS)":
     - X (Twitter): [Howl Official X Account](https://x.com/keio_howl?s=21&t=TriTKMLwbruJApWYrQQ3eA)
     - YouTube: [Howl Official YouTube Channel](https://youtube.com/channel/UCpXfFc7T2f0tG6mBApIfnlA?si=QqCmmo-xRIMLsGMq)
     """)
-
-
