@@ -13,7 +13,7 @@ supabase: Client = create_client(url, key)
 st.set_page_config(page_title="Howl Official", layout="wide")
 st.title("🐺 Howl Rating System")
 
-page = st.sidebar.selectbox("Menu", ["Leaderboard (ランキング)", "Record Result (勝敗入力)"])
+page = st.sidebar.selectbox("Menu", ["Leaderboard (ランキング)", "Record Result (勝敗入力)", "Social Media (SNS)"])
 
 # --- 関数 ---
 def load_data():
@@ -47,7 +47,7 @@ if page == "Leaderboard (ランキング)":
         # 2. 指定の関数でスコア計算
         # Score = ((w + 1) / (n + 2)) * log(n + 1)
         # ※np.log は自然対数(ln)です。常用対数にしたい場合は np.log10 に変えてください
-        stats["Score"] = ((stats["w"] + 1) / (stats["n"] + 2)) * np.log(stats["n"] + 1)
+        stats["Score"] = ((stats["w"] + 1) / (stats["n"] + 2)) * np.log(stats["n"] + 1) * 100
         
         # 3. 表示用に整える
         # スコアが高い順にソート
@@ -55,7 +55,7 @@ if page == "Leaderboard (ランキング)":
         ranking.index = range(1, len(ranking) + 1)
         
         # スコアを見やすく丸める
-        ranking["Score"] = ranking["Score"].round(4)
+        ranking["Score"] = ranking["Score"].round(0)
         
         # カラム名の整理
         ranking = ranking.rename(columns={"w": "Wins", "n": "Games"})
@@ -135,3 +135,33 @@ elif page == "Record Result (勝敗入力)":
                         st.success(f"登録完了！ (勝者: {len(winners)}名, 敗者: {len(losers)}名)")
                     except Exception as e:
                         st.error(f"エラー: {e}")
+
+        st.write("---")
+        st.subheader("⚠️ 直近の登録をキャンセル")
+
+        if st.button("最後に登録した1件（全参加者分）を削除する"):
+            # 1. 最後に登録された created_at を特定
+            last_record = supabase.table("match_results").select("created_at").order("created_at", desc=True).limit(1).execute()
+            
+            if last_record.data:
+                last_time = last_record.data[0]["created_at"]
+                # 2. その同じ日時に登録されたデータをすべて削除（一度の登録で複数人分入るため）
+                supabase.table("match_results").delete().eq("created_at", last_time).execute()
+                st.warning(f"時刻 {last_time} のデータを削除しました。")
+                st.rerun()
+            else:
+                st.info("削除できるデータがありません。")
+
+# --- ページ3: SNSリンク ---
+elif page == "Social Media (SNS)":
+    st.header("🔗 Our Social Media")
+    st.markdown("Here you can find our official social media channels:")
+    
+    st.markdown("""
+    - 公式Line: [Howl Official Instagram](https://line.me/R/ti/p/@290bixgt)
+    - Instagram: [Howl Official Instagram](https://www.instagram.com/keio_howl)
+    - X (Twitter): [Howl Official X Account](https://x.com/keio_howl?s=21&t=TriTKMLwbruJApWYrQQ3eA)
+    - YouTube: [Howl Official YouTube Channel](https://youtube.com/channel/UCpXfFc7T2f0tG6mBApIfnlA?si=QqCmmo-xRIMLsGMq)
+    """)
+
+
