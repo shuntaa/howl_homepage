@@ -50,6 +50,14 @@ def render_sidebar_status():
         living_players = len(get_players_by_status("生存"))
         total_players = len(st.session_state.players)
         st.sidebar.metric("生存者", f"{living_players} / {total_players} 名")
+
+        st.sidebar.subheader("生存状況")
+        for player in sorted(st.session_state.players, key=lambda p: p['name']):
+            if player['status'] == '死亡':
+                st.sidebar.markdown(f"<s>{player['name']}</s>", unsafe_allow_html=True)
+            else:
+                st.sidebar.write(f"・{player['name']}")
+
     else:
         st.sidebar.info("ゲーム開始前です。")
 
@@ -61,26 +69,35 @@ def render_setup_phase():
 
     with st.form("setup_form"):
         player_names = st.multiselect("参加者リスト", options=player_options, help="データベースから参加者を選択してください。")
+        total_players = len(player_names)
+
         st.subheader("役職構成")
         col1, col2 = st.columns(2)
+
         with col1:
             num_werewolf = st.number_input("人狼", min_value=1, value=1)
             num_seer = st.number_input("占い師", min_value=0, value=1)
+            num_knight = st.number_input("騎士", min_value=0, value=1)
+
         with col2:
             num_madman = st.number_input("狂人", min_value=0, value=1)
-            num_knight = st.number_input("騎士", min_value=0, value=1)
             num_psychic = st.number_input("霊能者", min_value=0, value=1)
+            
+            num_roles_except_villagers = num_werewolf + num_madman + num_seer + num_knight + num_psychic
+            default_villagers = total_players - num_roles_except_villagers
+            num_villager = st.number_input("市民", min_value=0, value=max(0, default_villagers))
 
-        total_players = len(player_names)
-        num_roles = num_werewolf + num_madman + num_seer + num_knight + num_psychic
-        num_villager = total_players - num_roles
-        st.metric("市民の数", f"{num_villager} 名")
-
+        total_roles = num_werewolf + num_madman + num_seer + num_knight + num_psychic + num_villager
         if st.form_submit_button("ゲーム開始"):
-            if num_villager < 0: st.error("役職の合計が参加者数を超えています！")
-            elif total_players == 0: st.error("参加者が入力されていません。")
+            if total_roles != total_players:
+                st.error(f"役職の合計({total_roles}名)が参加者数({total_players}名)と一致しません！")
+            elif total_players == 0:
+                st.error("参加者が入力されていません。")
             else:
-                roles_config = {"人狼": num_werewolf, "狂人": num_madman, "占い師": num_seer, "騎士": num_knight, "霊能者": num_psychic, "市民": num_villager}
+                roles_config = {
+                    "人狼": num_werewolf, "狂人": num_madman, "占い師": num_seer, 
+                    "騎士": num_knight, "霊能者": num_psychic, "市民": num_villager
+                }
                 st.session_state.players = assign_roles(player_names, roles_config)
                 st.session_state.game_phase = PHASE_DAY
                 st.session_state.turn_count = 1
@@ -90,6 +107,11 @@ def render_setup_phase():
 def render_day_phase():
     st.header(f"Phase 2: Day (Day {st.session_state.turn_count})")
     st.info("議論の時間です。生存者の中から追放する人物を一人選んでください。")
+
+    # --- Seer's result ---
+    if "seer_result" in st.session_state and st.session_state.seer_result:
+        st.markdown(st.session_state.seer_result, unsafe_allow_html=True)
+        st.session_state.seer_result = None
 
     # --- Psychic's result ---
     if st.session_state.turn_count > 1:
@@ -147,7 +169,9 @@ def render_night_phase():
             if seer and seer_target:
                 target_player = next(p for p in st.session_state.players if p["name"] == seer_target)
                 is_werewolf = target_player["role"] == "人狼"
-                st.markdown("【占い結果: " + seer_target + "】 -> " + ('<span style="color: red;">● 人狼</span>' if is_werewolf else '○ 人狼ではない'), unsafe_allow_html=True)
+                st.session_state.seer_result = "【占い結果: " + seer_target + "】 -> " + ('<span style="color: red;">● 人狼</span>' if is_werewolf else '○ 人狼ではない')
+            else:
+                st.session_state.seer_result = None
 
             if attack_target and guard_target != attack_target:
                 for p in st.session_state.players:
