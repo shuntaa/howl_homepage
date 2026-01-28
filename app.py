@@ -2,7 +2,7 @@ import streamlit as st
 from supabase import create_client, Client
 import pandas as pd
 import numpy as np # 数学関数(log)を使うために追加
-from datetime import date
+from datetime import date, timedelta
 
 # --- 1. Supabase接続 ---
 url = st.secrets["supabase"]["url"]
@@ -13,7 +13,7 @@ supabase: Client = create_client(url, key)
 st.set_page_config(page_title="Howl Official", layout="wide")
 st.title("🐺 人狼サークルHowlへようこそ")
 
-page = st.sidebar.selectbox("Menu", ["About Us (Howlとは)","Member Profiles (メンバー紹介)","Leaderboard (ランキング)", "Rule (ルール説明)"])
+page = st.sidebar.selectbox("Menu", ["About Us (Howlとは)","Schedule / Next Game（次回活動予定）", "Member Profiles (メンバー紹介)","Leaderboard (ランキング)", "Rule (ルール説明)"])
 
 # --- 関数 ---
 def load_data():
@@ -94,6 +94,28 @@ if page == "About Us (Howlとは)":
     st.markdown("🔗 [X (Twitter)](https://x.com/keio_howl?s=21&t=TriTKMLwbruJApWYrQQ3eA)")
     st.markdown("🔗 [YouTube](https://youtube.com/channel/UCpXfFc7T2f0tG6mBApIfnlA?si=QqCmmo-xRIMLsGMq)")
 
+
+# --- ページ: Schedule / Next Game（次回活動予定） ---
+elif page == "Schedule / Next Game（次回活動予定）":
+    st.header("📅 Schedule / Next Game")
+
+    # 次回イベントまでのカウントダウン
+    event_date = date(2026, 2, 16)  # ユーザーから提供されたイベント日付
+    today = date.today()
+    days_until_event = (event_date - today).days
+
+    if days_until_event > 0:
+        st.subheader(f"次のイベントまであと... {days_until_event} 日！ 🎉")
+    elif days_until_event == 0:
+        st.subheader("本日イベント開催！お見逃しなく！🎉")
+    else:
+        st.subheader("イベントは終了しました。次回のイベントをお楽しみに！")
+    
+    st.write("---")
+    
+    # Google Calendar Embed
+    st.write("### 次回活動予定")
+    st.components.v1.html('<iframe src="https://calendar.google.com/calendar/embed?src=keiowerewolf.howl%40gmail.com&ctz=Asia%2FTokyo" style="border: 0" width="800" height="600" frameborder="0" scrolling="no"></iframe>', height=600)
 
 
 # --- ページ: Member Profiles (メンバー紹介) ---
