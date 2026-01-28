@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 from supabase import create_client, Client
+from datetime import date
 
 # --- 1. Supabase接続 ---
 url = st.secrets["supabase"]["url"]
@@ -194,9 +195,71 @@ def render_result_phase():
     winner_message = st.session_state.game_logs[-1]
     st.balloons()
     
-    if "人狼チーム" in winner_message: st.error(f"## {winner_message}")
-    else: st.success(f"## {winner_message}")
+    if "人狼チーム" in winner_message:
+        st.error(f"## {winner_message}")
+        winning_team = "人狼"
+    else:
+        st.success(f"## {winner_message}")
+        winning_team = "市民"
 
+    st.write("---")
+    st.subheader("📝 Record Match Result")
+
+    # --- 勝敗結果の自動入力 ---
+    all_players = [p["name"] for p in st.session_state.players]
+    winners_default = [p["name"] for p in st.session_state.players if p["team"] == winning_team]
+    losers_default = [p["name"] for p in st.session_state.players if p["team"] != winning_team]
+
+    with st.form("result_form"):
+        game_date = st.date_input("日付", date.today())
+        memo = st.text_input("メモ (任意)", f"{st.session_state.turn_count}日で決着")
+        
+        st.write("---")
+        st.write("勝者と敗者を確認・修正してください")
+        
+        winners = st.multiselect("🏅 勝者 (Winners)", options=all_players, default=winners_default)
+        losers = st.multiselect("💀 敗者 (Losers)", options=all_players, default=losers_default)
+
+        st.write("---")
+        password = st.text_input("幹部用パスワード", type="password")
+        
+        submitted = st.form_submit_button("ランキングに登録")
+        
+        if submitted:
+            if password == st.secrets["admin"]["password"]:
+                # 集合演算による重複チェック
+                if not winners and not losers:
+                    st.error("参加者が選択されていません")
+                elif set(winners) & set(losers): 
+                    st.error("同じプレイヤーが勝者と敗者の両方に含まれています！")
+                else:
+                    insert_data = []
+                    
+                    for p in winners:
+                        insert_data.append({
+                            "game_date": str(game_date),
+                            "player_name": p,
+                            "is_win": 1, 
+                            "memo": memo
+                        })
+                    
+                    for p in losers:
+                        insert_data.append({
+                            "game_date": str(game_date),
+                            "player_name": p,
+                            "is_win": 0, 
+                            "memo": memo
+                        })
+                    
+                    try:
+                        supabase.table("match_results").insert(insert_data).execute()
+                        st.success(f"登録完了！ (勝者: {len(winners)}名, 敗者: {len(losers)}名)")
+                    except Exception as e:
+                        st.error(f"エラー: {e}")
+            else:
+                st.error("パスワードが違います")
+
+    st.write("---")
     if st.button("✨ 新しいゲームを始める"):
         for key in list(st.session_state.keys()): del st.session_state[key]
         st.rerun()
