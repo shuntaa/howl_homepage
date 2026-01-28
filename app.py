@@ -13,7 +13,7 @@ supabase: Client = create_client(url, key)
 st.set_page_config(page_title="Howl Official", layout="wide")
 st.title("🐺 人狼サークルHowlへようこそ")
 
-page = st.sidebar.selectbox("Menu", ["About Us (Howlとは)","Member Profiles (メンバー紹介)","Leaderboard (ランキング)", "Record Result (勝敗入力)"])
+page = st.sidebar.selectbox("Menu", ["About Us (Howlとは)","Member Profiles (メンバー紹介)","Leaderboard (ランキング)"])
 
 # --- 関数 ---
 def load_data():
@@ -141,133 +141,106 @@ elif page == "Member Profiles (メンバー紹介)":
 # --- ページ1: ランキング (数理モデル実装) ---
 elif page == "Leaderboard (ランキング)":
     st.header("🏆 Player Rating")
-    
+
+    # --- データ表示 ---
     df = load_data()
-    
+
     if df.empty:
         st.info("まだ対戦データがありません。")
     else:
-        # 1. 集計: プレイヤーごとの勝利数(w)と総対戦数(n)
-        stats = df.groupby("player_name")["is_win"].agg(
-            w="sum",   # 勝利数 (Wins)
-            n="count"  # 総参加数 (Total Games)
-        ).reset_index()
-        
-        # 2. スコア計算: Score = ((w + 1) / (n + 2)) * ln(n + 1) * 100
+        stats = df.groupby("player_name")["is_win"].agg(w="sum", n="count").reset_index()
         stats["Score"] = ((stats["w"] + 1) / (stats["n"] + 2)) * np.log(stats["n"] + 1) * 100
-        
-        # 3. ソート: スコア降順
         ranking = stats.sort_values("Score", ascending=False)
-        
-        # ===================================================
-        # [追加実装] ランクと称号の付与 (Stratification)
-        # ===================================================
-        
-        # 3.1 順位生成 (同点は最小ランクを採用する 'min' メソッド)
-        # 数学的定義: Rank(x_i) = 1 + |{x_j | Score(x_j) > Score(x_i)}|
         ranking["Rank"] = ranking["Score"].rank(ascending=False, method='min').astype(int)
-
-        # 3.2 称号マッピング関数の定義
-        # 全体集合における相対位置(Percentile)に基づくクラス分類
+        
         total_players = len(ranking)
-
-        # 3.3 関数適用 (写像: Rank -> Title)
         ranking["Title"] = ranking["Rank"].apply(assign_percentile_title, total_players=total_players)
         
-        # ===================================================
-
-        # 4. 表示用整形
-        # スコアを見やすく丸める
         ranking["Score"] = ranking["Score"].round(0)
-        
-        # カラム名の整理と列の並び替え
-        # ユーザーが直感的に見やすい順序: Rank -> Title -> Name -> Score ...
         ranking = ranking.rename(columns={"w": "Wins", "n": "Games", "player_name": "Player"})
         
-        # 最終的な表示列の選択と順序指定
         display_columns = ["Rank", "Title", "Player", "Score", "Wins", "Games"]
         st.dataframe(ranking[display_columns].set_index("Rank"), use_container_width=True)
-        
+
         with st.expander("対戦履歴ログ"):
             st.dataframe(df.sort_values("game_date", ascending=False))
 
-# --- ページ2: 勝敗入力 ---
-elif page == "Record Result (勝敗入力)":
-    st.header("📝 Record Match Result")
+    st.write("---")
 
-    # 認証チェック
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
+    # --- 結果入力セクション ---
+    if st.button("勝敗を入力する"):
+        # ボタンが押されたら編集モードをトグルする代わりに、常にTrueに設定
+        st.session_state.editing = True
 
-    if not st.session_state.authenticated:
-        password = st.text_input("幹部用パスワード", type="password")
-        if st.button("Login"):
-            if password == st.secrets["admin"]["password"]:
-                st.session_state.authenticated = True
-                st.rerun()
-            else:
-                st.error("パスワードが違います")
-    else:
-        # --- 勝敗入力フォーム ---
-        player_options = get_players()
-
-        with st.form("result_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                game_date = st.date_input("日付", date.today())
-            with col2:
-                memo = st.text_input("メモ (任意)")
-            
-            st.write("---")
-            st.write("勝者と敗者を選択してください")
-            
-            winners = st.multiselect("🏅 勝者 (Winners)", options=player_options)
-            losers = st.multiselect("💀 敗者 (Losers)", options=player_options)
-            
-            submitted = st.form_submit_button("登録する")
-            
-            if submitted:
-                # 集合演算による重複チェック
-                if not winners and not losers:
-                    st.error("参加者が選択されていません")
-                elif set(winners) & set(losers): 
-                    st.error("同じプレイヤーが勝者と敗者の両方に含まれています！")
+    # 編集モードがアクティブな場合のみ表示
+    if st.session_state.get("editing", False):
+        
+        # 認証ロジック
+        if not st.session_state.get("authenticated", False):
+            st.header("🔒 Admin Login")
+            password = st.text_input("幹部用パスワード", type="password", key="password_input")
+            if st.button("Login"):
+                if password == st.secrets["admin"]["password"]:
+                    st.session_state.authenticated = True
+                    st.rerun() # ログイン成功後、再実行してフォームを表示
                 else:
-                    insert_data = []
-                    
-                    for p in winners:
-                        insert_data.append({
-                            "game_date": str(game_date),
-                            "player_name": p,
-                            "is_win": 1, 
-                            "memo": memo
-                        })
-                    
-                    for p in losers:
-                        insert_data.append({
-                            "game_date": str(game_date),
-                            "player_name": p,
-                            "is_win": 0, 
-                            "memo": memo
-                        })
-                    
-                    try:
-                        supabase.table("match_results").insert(insert_data).execute()
-                        st.success(f"登録完了！ (勝者: {len(winners)}名, 敗者: {len(losers)}名)")
-                    except Exception as e:
-                        st.error(f"エラー: {e}")
-
-        st.write("---")
-        st.subheader("⚠️ 直近の登録をキャンセル")
-
-        if st.button("最後に登録した1件（全参加者分）を削除する"):
-            last_record = supabase.table("match_results").select("created_at").order("created_at", desc=True).limit(1).execute()
+                    st.error("パスワードが違います")
             
-            if last_record.data:
-                last_time = last_record.data[0]["created_at"]
-                supabase.table("match_results").delete().eq("created_at", last_time).execute()
-                st.warning(f"時刻 {last_time} のデータを削除しました。")
+            # 閉じるボタンは認証前にも表示
+            if st.button("閉じる"):
+                st.session_state.editing = False
                 st.rerun()
-            else:
-                st.info("削除できるデータがありません。")
+        
+        # 認証済みの場合にフォームを表示
+        else:
+            st.header("📝 Record Match Result")
+            with st.form("result_form"):
+                player_options = get_players()
+                col1, col2 = st.columns(2)
+                with col1:
+                    game_date = st.date_input("日付", date.today())
+                with col2:
+                    memo = st.text_input("メモ (任意)")
+                
+                st.write("勝者と敗者を選択してください")
+                winners = st.multiselect("🏅 勝者 (Winners)", options=player_options)
+                losers = st.multiselect("💀 敗者 (Losers)", options=player_options)
+                
+                submitted = st.form_submit_button("登録する")
+                
+                if submitted:
+                    if not winners and not losers:
+                        st.error("参加者が選択されていません")
+                    elif set(winners) & set(losers):
+                        st.error("同じプレイヤーが勝者と敗者の両方に含まれています！")
+                    else:
+                        insert_data = []
+                        for p in winners:
+                            insert_data.append({"game_date": str(game_date), "player_name": p, "is_win": 1, "memo": memo})
+                        for p in losers:
+                            insert_data.append({"game_date": str(game_date), "player_name": p, "is_win": 0, "memo": memo})
+                        
+                        try:
+                            supabase.table("match_results").insert(insert_data).execute()
+                            st.success(f"登録完了！ (勝者: {len(winners)}名, 敗者: {len(losers)}名)")
+                            st.session_state.editing = False # 成功したら編集モードを終了
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"エラー: {e}")
+
+            st.subheader("⚠️ 直近の登録をキャンセル")
+            if st.button("最後に登録した1件（全参加者分）を削除する"):
+                last_record = supabase.table("match_results").select("created_at").order("created_at", desc=True).limit(1).execute()
+                if last_record.data:
+                    last_time = last_record.data[0]["created_at"]
+                    supabase.table("match_results").delete().eq("created_at", last_time).execute()
+                    st.warning(f"時刻 {last_time} のデータを削除しました。")
+                    st.rerun()
+                else:
+                    st.info("削除できるデータがありません。")
+
+            if st.button("閉じる"):
+                st.session_state.editing = False
+                st.rerun()
+
 
