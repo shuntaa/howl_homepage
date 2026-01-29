@@ -1,6 +1,8 @@
 import pandas as pd
 import pytest
-from app import assign_percentile_title
+from unittest.mock import MagicMock
+from pages._db import assign_percentile_title
+
 
 def test_assign_percentile_title():
     # Test cases
@@ -34,3 +36,53 @@ def test_assign_percentile_title():
     assert assign_percentile_title(12, 20) == "👣 B-Class (Top 60%)" # 12/20 = 0.6
 
     assert assign_percentile_title(13, 20) == "🔰 Rookie" # 13/20 = 0.65
+
+def test_init_connection_success(monkeypatch):
+    """init_connection が st.secrets から正しく接続情報を取得してクライアントを返すことを検証"""
+    mock_client = MagicMock()
+    mock_create_client = MagicMock(return_value=mock_client)
+    mock_st = MagicMock()
+    mock_st.secrets = {"supabase": {"url": "https://test.supabase.co", "key": "test-key"}}
+
+    monkeypatch.setattr("pages._db.create_client", mock_create_client)
+    monkeypatch.setattr("pages._db.st", mock_st)
+
+    from pages._db import init_connection
+
+    result = init_connection()
+    assert result is mock_client
+    mock_create_client.assert_called_once_with("https://test.supabase.co", "test-key")
+
+
+def test_load_data_with_mock(monkeypatch):
+    """load_data が Supabase から取得したデータを DataFrame に変換することを検証"""
+    mock_data = [
+        {"game_date": "2024-01-01", "player_name": "Player 1", "is_win": 1, "memo": "Test"},
+        {"game_date": "2024-01-01", "player_name": "Player 2", "is_win": 0, "memo": "Test"},
+    ]
+    mock_response = MagicMock()
+    mock_response.data = mock_data
+
+    mock_supabase = MagicMock()
+    mock_supabase.table().select().execute.return_value = mock_response
+
+    from pages._db import load_data
+
+    df = load_data(mock_supabase)
+    assert len(df) == 2
+    assert list(df.columns) == ["game_date", "player_name", "is_win", "memo"]
+    assert df["player_name"].tolist() == ["Player 1", "Player 2"]
+
+
+def test_load_data_empty(monkeypatch):
+    """load_data が空のレスポンスで空の DataFrame を返すことを検証"""
+    mock_response = MagicMock()
+    mock_response.data = None
+
+    mock_supabase = MagicMock()
+    mock_supabase.table().select().execute.return_value = mock_response
+
+    from pages._db import load_data
+
+    df = load_data(mock_supabase)
+    assert df.empty
