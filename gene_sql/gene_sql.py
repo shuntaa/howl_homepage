@@ -9,12 +9,12 @@ def generate_sql_from_csv(input_csv, output_sql):
     df.columns = [c.strip() for c in df.columns]
 
     sql_statements = []
-    default_date = '2025-10-01' # 過去データ用の暫定日付
-    memo = "過去データ一括移行"
+    default_date = '2024-10-01' # 過去データ用の暫定日付
+    memo = "2024年データ一括移行"
 
     # 3. データの復元（De-aggregation）
     for _, row in df.iterrows():
-        name = str(row['player_name']).strip()
+        name = str(row['name']).strip()
         try:
             w = int(row['win'])
             l = int(row['lose'])
@@ -37,10 +37,10 @@ def generate_sql_from_csv(input_csv, output_sql):
             for i in range(0, len(sql_statements), chunk_size):
                 chunk = sql_statements[i:i + chunk_size]
                 values_str = ",\n".join(chunk)
-                f.write(f"INSERT INTO match_results (game_date, player_name, is_win, memo) VALUES\n{values_str};\n\n")
+                f.write(f"INSERT INTO match_results (game_date,name, is_win, memo) VALUES\n{values_str};\n\n")
         print(f"成功: {len(sql_statements)}件の試合データを復元し、{output_sql} に保存しました。")
     else:
         print("有効なデータが見つかりませんでした。")
 
 # 実行
-generate_sql_from_csv('howl得点2025 のコピー - 20251003_1529.csv', 'import_howl_results.sql')
+generate_sql_from_csv('input_csv.csv', 'import_howl_results24.sql')
