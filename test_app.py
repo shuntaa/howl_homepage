@@ -57,14 +57,16 @@ def test_init_connection_success(monkeypatch):
 def test_load_data_with_mock(monkeypatch):
     """load_data が Supabase から取得したデータを DataFrame に変換することを検証"""
     mock_data = [
-        {"game_date": "2024-01-01", "student_id": 1, "is_win": 1, "memo": "Test", "players": {"name": "Player 1"}},
-        {"game_date": "2024-01-01", "student_id": 2, "is_win": 0, "memo": "Test", "players": {"name": "Player 2"}},
+        {"game_date": "2024-01-01", "student_id": 1, "is_win": 1, "memo": "Test"},
+        {"game_date": "2024-01-01", "student_id": 2, "is_win": 0, "memo": "Test"},
     ]
     mock_response = MagicMock()
     mock_response.data = mock_data
 
     mock_supabase = MagicMock()
     mock_supabase.table().select().execute.return_value = mock_response
+
+    monkeypatch.setattr("pages._db.get_player_name_map", lambda supabase: {1: "Player 1", 2: "Player 2"})
 
     from pages._db import load_data
 
