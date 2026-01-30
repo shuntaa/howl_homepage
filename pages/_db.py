@@ -57,9 +57,8 @@ def get_sanitized_players_df(supabase: Client):
     return df.drop(columns=columns_to_drop)
 
 def get_active_players_info(supabase: Client):
-    """アクティブなプレイヤーの情報（student_id, name）を取得"""
-    players = get_active_players(supabase)
-    return [{"student_id": player["student_id"], "name": player["name"]} for player in players]
+    """アクティブなプレイヤーの全情報を取得"""
+    return get_active_players(supabase)
 
 def get_active_player_names(supabase: Client):
     """アクティブなプレイヤーの名前のみを取得"""
