@@ -19,7 +19,7 @@ else:
     if df.empty:
         st.info("まだ対戦データがありません。")
     else:
-        stats = df.groupby("player_name")["is_win"].agg(w="sum", n="count").reset_index()
+        stats = df.groupby(["student_id", "player_name"])["is_win"].agg(w="sum", n="count").reset_index()
         stats["Score"] = ((stats["w"] + 1) / (stats["n"] + 2)) * np.log(stats["n"] + 1) * 100
         ranking = stats.sort_values("Score", ascending=False)
         ranking["Rank"] = ranking["Score"].rank(ascending=False, method='min').astype(int)

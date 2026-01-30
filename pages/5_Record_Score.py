@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import date
-from pages._db import init_connection, get_players
+from pages._db import init_connection, get_active_players_info
 
 try:
     supabase = init_connection()
@@ -31,7 +31,9 @@ else:
     else:
         st.header("📝 Record Match Result")
         with st.form("result_form"):
-            player_options = get_players(supabase)
+            players_info = get_active_players_info(supabase)
+            player_options = {player['student_id']: player['name'] for player in players_info}
+
             col1, col2 = st.columns(2)
             with col1:
                 game_date = st.date_input("日付", date.today())
@@ -39,8 +41,8 @@ else:
                 memo = st.text_input("メモ (任意)")
             
             st.write("勝者と敗者を選択してください")
-            winners = st.multiselect("🏅 勝者 (Winners)", options=player_options)
-            losers = st.multiselect("💀 敗者 (Losers)", options=player_options)
+            winners = st.multiselect("🏅 勝者 (Winners)", options=list(player_options.keys()), format_func=lambda x: player_options[x])
+            losers = st.multiselect("💀 敗者 (Losers)", options=list(player_options.keys()), format_func=lambda x: player_options[x])
             
             submitted = st.form_submit_button("登録する")
             
@@ -52,9 +54,9 @@ else:
                 else:
                     insert_data = []
                     for p in winners:
-                        insert_data.append({"game_date": str(game_date), "player_name": p, "is_win": 1, "memo": memo})
+                        insert_data.append({"game_date": str(game_date), "student_id": p, "is_win": 1, "memo": memo})
                     for p in losers:
-                        insert_data.append({"game_date": str(game_date), "player_name": p, "is_win": 0, "memo": memo})
+                        insert_data.append({"game_date": str(game_date), "student_id": p, "is_win": 0, "memo": memo})
                     
                     try:
                         supabase.table("match_results").insert(insert_data).execute()

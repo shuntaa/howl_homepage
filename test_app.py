@@ -57,8 +57,8 @@ def test_init_connection_success(monkeypatch):
 def test_load_data_with_mock(monkeypatch):
     """load_data が Supabase から取得したデータを DataFrame に変換することを検証"""
     mock_data = [
-        {"game_date": "2024-01-01", "player_name": "Player 1", "is_win": 1, "memo": "Test"},
-        {"game_date": "2024-01-01", "player_name": "Player 2", "is_win": 0, "memo": "Test"},
+        {"game_date": "2024-01-01", "student_id": 1, "is_win": 1, "memo": "Test", "players": {"name": "Player 1"}},
+        {"game_date": "2024-01-01", "student_id": 2, "is_win": 0, "memo": "Test", "players": {"name": "Player 2"}},
     ]
     mock_response = MagicMock()
     mock_response.data = mock_data
@@ -70,8 +70,30 @@ def test_load_data_with_mock(monkeypatch):
 
     df = load_data(mock_supabase)
     assert len(df) == 2
-    assert list(df.columns) == ["game_date", "player_name", "is_win", "memo"]
+    assert "student_id" in df.columns
+    assert "player_name" in df.columns
     assert df["player_name"].tolist() == ["Player 1", "Player 2"]
+
+
+def test_get_player_name_map(monkeypatch):
+    """get_player_name_map が正しくマッピングを返すことを検証"""
+    mock_data = [
+        {"student_id": 1, "name": "Player 1"},
+        {"student_id": 2, "name": "Player 2"},
+    ]
+    mock_response = MagicMock()
+    mock_response.data = mock_data
+
+    mock_supabase = MagicMock()
+    mock_supabase.table().select().execute.return_value = mock_response
+
+    monkeypatch.setattr("pages._db.get_players", lambda supabase: mock_data)
+
+    from pages._db import get_player_name_map
+
+    name_map = get_player_name_map(mock_supabase)
+    assert name_map == {1: "Player 1", 2: "Player 2"}
+
 
 
 def test_load_data_empty(monkeypatch):

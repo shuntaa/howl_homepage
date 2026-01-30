@@ -7,7 +7,7 @@ import pandas as pd
 import random
 from datetime import date
 
-from pages._db import init_connection, get_active_players, insert_match_results
+from pages._db import init_connection, get_active_players_info, insert_match_results
 
 # --- Constants ---
 PHASE_SETUP = "Setup"
@@ -24,19 +24,20 @@ except Exception:
 
 # ========== Game Logic Functions ==========
 
-def assign_roles(player_names, roles_config):
+def assign_roles(players_info, roles_config):
     """参加者に役職をランダム割り当て"""
     roles = sum([[role] * count for role, count in roles_config.items()], [])
     random.shuffle(roles)
 
     return [
         {
-            "name": name,
+            "student_id": info["student_id"],
+            "name": info["name"],
             "role": roles[i],
             "status": "生存",
             "team": "人狼" if roles[i] in ["人狼", "狂人"] else "市民",
         }
-        for i, name in enumerate(player_names)
+        for i, info in enumerate(players_info)
     ]
 
 
@@ -58,11 +59,15 @@ def check_game_over(players):
     return None
 
 
-def get_last_executed_player_name(game_logs):
-    """直近の処刑ログから処刑されたプレイヤー名を取得"""
+def get_last_executed_player_id(game_logs):
+    """直近の処刑ログから処刑されたプレイヤーのIDを取得"""
     for log in reversed(game_logs):
         if "が処刑されました。" in log:
-            return log.split(" ")[2]
+            # "Day 1: PlayerName (12345) が処刑されました。" -> "12345"
+            try:
+                return int(log.split("(")[1].split(")")[0])
+            except (IndexError, ValueError):
+                return None
     return None
 
 
@@ -93,15 +98,17 @@ def render_setup_phase(supabase_client):
     st.header("Phase 1: Setup")
     st.info("参加者と役職の数を設定してください。")
 
-    player_options = get_active_players(supabase_client)
+    players_info = get_active_players_info(supabase_client)
+    player_options = {player['student_id']: player['name'] for player in players_info}
 
     with st.form("setup_form"):
-        player_names = st.multiselect(
+        selected_student_ids = st.multiselect(
             "参加者リスト",
-            options=player_options,
+            options=list(player_options.keys()),
+            format_func=lambda x: player_options[x],
             help="データベースから参加者を選択してください。",
         )
-        total_players = len(player_names)
+        total_players = len(selected_student_ids)
 
         st.subheader("役職構成")
         col1, col2 = st.columns(2)
@@ -142,7 +149,8 @@ def render_setup_phase(supabase_client):
                     "霊能者": num_psychic,
                     "市民": num_villager,
                 }
-                st.session_state.players = assign_roles(player_names, roles_config)
+                selected_players_info = [p for p in players_info if p['student_id'] in selected_student_ids]
+                st.session_state.players = assign_roles(selected_players_info, roles_config)
                 st.session_state.game_phase = PHASE_DAY
                 st.session_state.turn_count = 1
                 st.session_state.game_logs.append("--- ゲーム開始 ---")
@@ -168,16 +176,16 @@ def render_day_phase():
             (p for p in living_players if p["role"] == "霊能者"), None
         )
         if psychic:
-            executed_name = get_last_executed_player_name(st.session_state.game_logs)
-            if executed_name:
+            executed_id = get_last_executed_player_id(st.session_state.game_logs)
+            if executed_id:
                 executed_player = next(
-                    (p for p in players if p["name"] == executed_name), None
+                    (p for p in players if p["student_id"] == executed_id), None
                 )
                 if executed_player:
                     is_werewolf = executed_player["role"] == "人狼"
                     st.markdown(
                         "【霊能結果: "
-                        + executed_name
+                        + executed_player['name']
                         + "】 -> "
                         + (
                             '<span style="color: red;">● 人狼</span>'
@@ -188,16 +196,18 @@ def render_day_phase():
                     )
 
     with st.form("execution_form"):
-        living_player_names = [p["name"] for p in living_players]
-        executed_player = st.selectbox("処刑対象", living_player_names)
+        living_player_options = {p['student_id']: p['name'] for p in living_players}
+        executed_player_id = st.selectbox("処刑対象", list(living_player_options.keys()), format_func=lambda x: living_player_options[x])
 
         if st.form_submit_button("処刑実行"):
+            executed_player_name = ""
             for p in players:
-                if p["name"] == executed_player:
+                if p["student_id"] == executed_player_id:
                     p["status"] = "死亡"
+                    executed_player_name = p['name']
 
             st.session_state.game_logs.append(
-                f"Day {st.session_state.turn_count}: {executed_player} が処刑されました。"
+                f"Day {st.session_state.turn_count}: {executed_player_name} ({executed_player_id}) が処刑されました。"
             )
             winner = check_game_over(players)
             if winner:
@@ -215,42 +225,45 @@ def render_night_phase():
 
     players = st.session_state.players
     living_players = get_players_by_status(players, "生存")
-    living_names = [p["name"] for p in living_players]
+    living_player_options = {p['student_id']: p['name'] for p in living_players}
 
     seer = next((p for p in living_players if p["role"] == "占い師"), None)
     knight = next((p for p in living_players if p["role"] == "騎士"), None)
-    werewolf_names = [p["name"] for p in living_players if p["role"] == "人狼"]
+    werewolf_ids = [p["student_id"] for p in living_players if p["role"] == "人狼"]
 
     with st.form("night_action_form"):
         st.subheader("🌙 夜のアクション")
-        attack_target = st.selectbox(
+        attack_target_id = st.selectbox(
             "🐺 人狼の襲撃対象",
-            [n for n in living_names if n not in werewolf_names],
+            [id for id in living_player_options.keys() if id not in werewolf_ids],
             index=None,
             placeholder="襲撃しない場合は選択しないでください",
+            format_func=lambda x: living_player_options[x]
         )
-        seer_target = st.selectbox(
+        seer_target_id = st.selectbox(
             "🔮 占い師の占い対象",
-            [n for n in living_names if n != seer["name"]] if seer else [],
+            [id for id in living_player_options.keys() if id != seer["student_id"]] if seer else [],
             index=None,
             placeholder="生存していません" if not seer else "占わない場合は選択しないでください",
+            format_func=lambda x: living_player_options[x]
         )
-        guard_target = st.selectbox(
+        guard_target_id = st.selectbox(
             "🛡️ 騎士の護衛対象",
-            [n for n in living_names if n != knight["name"]] if knight else [],
+            [id for id in living_player_options.keys() if id != knight["student_id"]] if knight else [],
             index=None,
             placeholder="生存していません" if not knight else "護衛しない場合は選択しないでください",
+            format_func=lambda x: living_player_options[x]
         )
 
         if st.form_submit_button("夜の行動を終了"):
-            if seer and seer_target:
+            if seer and seer_target_id:
                 target_player = next(
-                    p for p in players if p["name"] == seer_target
+                    p for p in players if p["student_id"] == seer_target_id
                 )
                 is_werewolf = target_player["role"] == "人狼"
                 st.session_state.seer_result = (
                     "【占い結果: "
-                    + seer_target
+                    + target_player['name']
                     + "】 -> "
                     + (
                         '<span style="color: red;">● 人狼</span>'
@@ -261,19 +274,21 @@ def render_night_phase():
             else:
                 st.session_state.seer_result = None
 
-            if attack_target and guard_target != attack_target:
+            if attack_target_id and guard_target_id != attack_target_id:
+                attacked_player_name = ""
                 for p in players:
-                    if p["name"] == attack_target:
+                    if p["student_id"] == attack_target_id:
                         p["status"] = "死亡"
+                        attacked_player_name = p['name']
                 st.session_state.game_logs.append(
-                    f"Night {st.session_state.turn_count}: {attack_target} が襲撃されました。"
+                    f"Night {st.session_state.turn_count}: {attacked_player_name} ({attack_target_id}) が襲撃されました。"
                 )
             else:
                 st.session_state.game_logs.append(
                     f"Night {st.session_state.turn_count}: "
                     + (
                         "襲撃は護衛された。"
-                        if attack_target
+                        if attack_target_id
                         else "誰も襲撃されませんでした。"
                     )
                 )
@@ -305,9 +320,9 @@ def render_result_phase(supabase_client):
     st.subheader("📝 Record Match Result")
 
     players = st.session_state.players
-    all_players = [p["name"] for p in players]
-    winners_default = [p["name"] for p in players if p["team"] == winning_team]
-    losers_default = [p["name"] for p in players if p["team"] != winning_team]
+    player_options = {p["student_id"]: p["name"] for p in players}
+    winners_default = [p["student_id"] for p in players if p["team"] == winning_team]
+    losers_default = [p["student_id"] for p in players if p["team"] != winning_team]
 
     with st.form("result_form"):
         game_date = st.date_input("日付", date.today())
@@ -317,10 +332,10 @@ def render_result_phase(supabase_client):
         st.write("勝者と敗者を確認・修正してください")
 
         winners = st.multiselect(
-            "🏅 勝者 (Winners)", options=all_players, default=winners_default
+            "🏅 勝者 (Winners)", options=list(player_options.keys()), default=winners_default, format_func=lambda x: player_options[x]
         )
         losers = st.multiselect(
-            "💀 敗者 (Losers)", options=all_players, default=losers_default
+            "💀 敗者 (Losers)", options=list(player_options.keys()), default=losers_default, format_func=lambda x: player_options[x]
         )
 
         st.write("---")
@@ -330,27 +345,29 @@ def render_result_phase(supabase_client):
 
         if submitted:
             admin_password = st.secrets.get("admin", {}).get("password")
-            if password == admin_password:
+            if not admin_password:
+                st.error("管理者パスワードが設定されていません。.streamlit/secrets.tomlを確認してください。")
+            elif password == admin_password:
                 if not winners and not losers:
                     st.error("参加者が選択されていません")
                 elif set(winners) & set(losers):
                     st.error("同じプレイヤーが勝者と敗者の両方に含まれています！")
                 else:
                     insert_data = []
-                    for p in winners:
+                    for p_id in winners:
                         insert_data.append(
                             {
                                 "game_date": str(game_date),
-                                "player_name": p,
+                                "student_id": p_id,
                                 "is_win": 1,
                                 "memo": memo,
                             }
                         )
-                    for p in losers:
+                    for p_id in losers:
                         insert_data.append(
                             {
                                 "game_date": str(game_date),
-                                "player_name": p,
+                                "student_id": p_id,
                                 "is_win": 0,
                                 "memo": memo,
                             }
@@ -398,7 +415,7 @@ def render_gm_panel(players):
 
 # ========== Main App ==========
 
-st.title("🐺 GM Tool (Offline)")
+st.title("🐺 Game")
 
 if supabase is None:
     st.error("データベースに接続できませんでした。.streamlit/secrets.toml を確認してください。")
