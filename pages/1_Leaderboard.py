@@ -62,19 +62,28 @@ else:
 # --- 4. 集計ロジック（df_display に対して行う） ---
         if not df_display.empty:
 
-            #stats = df.groupby(["student_id", "player_name"])["is_win"].agg(w="sum", n="count").reset_index()
             stats = df_display.groupby(["student_id", "player_name"])["is_win"].agg(w="sum", n="count").reset_index()
             stats["Score"] = ((stats["w"] + 1) / (stats["n"] + 2)) * np.log(stats["n"] + 1) * 100
+            # 純粋な勝率（w/n）を計算（パーセント表示用に100を掛ける）
+            stats["Win Rate"] = (stats["w"] / stats["n"] * 100).round(1)
+
             ranking = stats.sort_values("Score", ascending=False)
             ranking["Rank"] = ranking["Score"].rank(ascending=False, method='min').astype(int)
             
+
+
             total_players = len(ranking)
             ranking["Title"] = ranking["Rank"].apply(assign_percentile_title, total_players=total_players)
             
             ranking["Score"] = ranking["Score"].round(0)
             ranking = ranking.rename(columns={"w": "Wins", "n": "Games", "player_name": "Player"})
             
-            display_columns = ["Rank", "Title", "Player", "Score", "Wins", "Games"]
+            # 表示したいカラムのリストに "Win Rate" を追加
+            # 勝率に「%」を付けて見やすく加工します
+            ranking["Win Rate %"] = ranking["Win Rate"].astype(str) + "%"
+
+            display_columns = ["Rank", "Title", "Player", "Score", "Wins", "Games","Win Rate %"]
+
             st.dataframe(ranking[display_columns].set_index("Rank"), use_container_width=True)
 
             with st.expander("対戦履歴ログ"):
