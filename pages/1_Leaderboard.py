@@ -87,4 +87,5 @@ else:
             st.dataframe(ranking[display_columns].set_index("Rank"), use_container_width=True)
 
             with st.expander("対戦履歴ログ"):
-                st.dataframe(df.sort_values("game_date", ascending=False))
+                # student_id を非表示にして表示
+                st.dataframe(df.drop(columns=['student_id']).sort_values("game_date", ascending=False))
