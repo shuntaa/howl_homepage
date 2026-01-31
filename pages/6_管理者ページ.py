@@ -59,6 +59,23 @@ def show_record_score_page(supabase):
         except Exception as e:
             st.error(f"削除中にエラーが発生しました: {e}")
 
+
+def show_accounting_page(supabase):
+    """会計ページ：資金の補充申請フォームを表示する関数"""
+    st.subheader("💸 資金の補充申請 (For Current Rep)")
+
+    with st.form("request_funds"):
+        req_amount = st.number_input("補充希望額", min_value=1000, step=1000)
+        reason = st.text_input("理由（例：合宿費の先払いのため）")
+        
+        # 証拠画像（現在の財布の中身や、未精算レシートなど）
+        proof_img = st.file_uploader("現在の状況（証憑）", type=['jpg', 'png'])
+        
+        if st.form_submit_button("CFOへ申請する"):
+            # ここでSlackやLINEに通知を飛ばすと完璧
+            # send_line_notify(f"¥{req_amount} の補充申請が来ました！理由: {reason}")
+            st.success("申請しました！CFO（山本）の承認をお待ちください。")
+
 def show_player_roster_page(supabase):
     """選手名簿を表示する関数"""
     st.header("📖 Player Roster")
@@ -102,6 +119,7 @@ else:
     admin_pages = {
         "成績入力": show_record_score_page,
         "選手名簿": show_player_roster_page,
+        "会計": show_accounting_page,
     }
 
     selection = st.sidebar.radio("メニューを選択", list(admin_pages.keys()))
