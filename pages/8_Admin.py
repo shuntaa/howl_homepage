@@ -47,8 +47,15 @@ else:
                 if st.button("承認 ✅", key=f"approve_{row['id']}"):
                     # 1. playersに追加
                     new_player = {
-                        "name": row['student_name'],
-                        "student_id": row['student_id_number'],
+                        "name": row['player_name'],        # ランキング表示名
+                        "real_name": row['student_name'],  # 本名
+                        "faculty": row['faculty'],
+                        "gender": row['gender'],
+                        "email": row['email'],             # emailも追加
+
+                        "term_number": row['term_number'],
+
+                        "student_id": row['student_id_number'], # 型に注意（text推奨）
                         "is_active": True
                     }
                     supabase.table("players").insert(new_player).execute()

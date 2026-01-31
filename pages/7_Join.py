@@ -24,6 +24,8 @@ except Exception as e:
 # --- 申請フォーム ---
 with st.form("join_request_form"):
     st.subheader("基本情報")
+    
+    # 入力項目（ユーザー指定）
     name = st.text_input("氏名（フルネーム）", placeholder="例：慶應 太郎")
     s_id = st.text_input("学籍番号", placeholder="例：824xxxxx")
     player_name = st.text_input("プレイヤーネーム（ランキングにはこの名前が表示されます）", placeholder="例：けいおう")
@@ -53,6 +55,10 @@ with st.form("join_request_form"):
         elif "@keio.jp" not in email:
             st.error("⚠️ 慶應のメールアドレス（@keio.jp）を入力してください。")
         else:
+            # --- ここで自動計算 (Logic) ---
+            # term_number = 振込年 - 2022
+            term_num = transfer_date.year - 2022
+
             # データ送信処理
             try:
                 data = {
@@ -64,11 +70,15 @@ with st.form("join_request_form"):
                     "email": email,
                     "transfer_name": transfer_name,
                     "transfer_date": transfer_date.isoformat(),
-                    "status": "PENDING"  # 最初は保留状態
+                    
+                    # 計算した期数を送信
+                    "term_number": term_num,
+                    
+                    "status": "PENDING"
                 }
                 supabase.table("membership_requests").insert(data).execute()
 
-                st.success("✅ 申請を受け付けました！入金確認をお待ちください。")
+                st.success(f"✅ 申請を受け付けました！\nあなたは【{term_num}期生】として登録申請されました。\n入金確認をお待ちください。")
                 st.balloons()
 
             except Exception as e:
