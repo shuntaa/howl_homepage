@@ -1,11 +1,8 @@
 import streamlit as st
 from datetime import date
-import sys
-import os
 import pandas as pd
 
 # プロジェクトルートをパスに追加
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from pages._db import init_connection, get_active_players_info, get_sanitized_players_df
 
 def show_record_score_page(supabase):
@@ -101,16 +98,25 @@ if supabase is None:
 
 # パスワード認証
 if not st.session_state.get("authenticated", False):
-    st.header("Admin Login")
-    password = st.text_input("幹部用パスワード", type="password")
-    admin_password = st.secrets.get("admin", {}).get("password")
+    st.header("Staff Login")
+    password = st.text_input("パスワードを入力してください", type="password")
+    
+    # 新しい secrets.toml の構造に対応
+    try:
+        staff_pass = st.secrets["auth"]["staff_password"]   # 幹部用
+        master_pass = st.secrets["auth"]["master_password"] # あなた用
+    except KeyError:
+        st.error("⚠️ secrets.toml にパスワード設定が見つかりません。")
+        st.stop()
 
     if st.button("Login"):
-        if admin_password and password == admin_password:
+        # 幹部パスワード または マスターパスワード でログイン可
+        if password == staff_pass or password == master_pass:
             st.session_state.authenticated = True
+            st.success("ログイン成功")
             st.rerun()
         else:
-            st.error("パスワードが違うか、設定されていません。")
+            st.error("パスワードが違います")
             st.stop()
 else:
     # 認証後の表示
