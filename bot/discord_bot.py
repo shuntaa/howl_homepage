@@ -1,5 +1,6 @@
 import discord
 import os
+from keep_alive import keep_alive
 import asyncio
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -93,6 +94,7 @@ async def on_message(message):
 
 # Bot起動
 if DISCORD_TOKEN:
+    keep_alive()
     client.run(DISCORD_TOKEN)
 else:
     print("Error: DISCORD_TOKEN not found.")
