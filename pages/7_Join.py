@@ -55,6 +55,44 @@ with st.form("join_request_form"):
         elif "@" not in email:
             st.error("⚠️ 正しいメールアドレスを入力してください。")
         else:
+            # ---------------------------------------------------------
+            # 🛡️ 重複事前チェック (Pre-check)
+            # ---------------------------------------------------------
+            try:
+                # 名前が被っていないか確認
+                check_name = supabase.table("players").select("name").eq("name", player_name).execute()
+
+                # メアドが被っていないか確認
+                check_email = supabase.table("players").select("email").eq("email", email).execute()
+
+                # 学籍番号が被っていないか確認（念のため）
+                # ※ DBのstudent_idが数値型の場合、エラーになることがあるのでキャストする
+                check_sid = supabase.table("players").select("student_id").eq("student_id", int(s_id) if s_id.isdigit() else s_id).execute()
+
+                # 重複があればエラーを出して止める
+                if check_name.data:
+                    st.error(f"❌ プレイヤー名「{player_name}」は既に使用されています。別の名前にしてください。")
+                    st.stop() # ここで処理を中断
+
+                if check_email.data:
+                    st.error("❌ そのメールアドレスは既に登録されています。")
+                    st.stop()
+
+                if check_sid.data:
+                    st.error("❌ その学籍番号は既に登録されています。")
+                    st.stop()
+
+            except Exception as e:
+                # DB接続エラーなどはここでキャッチ
+                st.warning(f"重複チェック中にエラーが発生しましたが、処理を続行します: {e}")
+
+            # ---------------------------------------------------------
+            # ✅ ここまで来たら重複なし -> 申請データを送信
+
+
+            # ---------------------------------------------------------
+            term_num = transfer_date.year - 2022 # 期数の計算
+
             # --- ここで自動計算 (Logic) ---
             # term_number = 振込年 - 2022
             term_num = transfer_date.year - 2022
