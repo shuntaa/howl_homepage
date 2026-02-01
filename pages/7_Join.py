@@ -52,8 +52,8 @@ with st.form("join_request_form"):
     if submitted:
         if not all([name, s_id, player_name, email, transfer_name]):
             st.error("⚠️ すべての項目を入力してください。")
-        elif "@keio.jp" not in email:
-            st.error("⚠️ 慶應のメールアドレス（@keio.jp）を入力してください。")
+        elif "@" not in email:
+            st.error("⚠️ 正しいメールアドレスを入力してください。")
         else:
             # --- ここで自動計算 (Logic) ---
             # term_number = 振込年 - 2022
