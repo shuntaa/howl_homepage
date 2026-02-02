@@ -70,8 +70,8 @@ async def on_message(message):
                     # 1. ロールを付与
                     await user.add_roles(role)
                     
-                    # 2. ニックネームを変更 (例: 824xxxxx 山田太郎)
-                    new_nick = f"{player_data['student_id']} {player_data['name']}"
+                    # 2. ニックネームを変更 
+                    new_nick = player_data['name']
                     try:
                         await user.edit(nick=new_nick)
                     except Exception as e:
