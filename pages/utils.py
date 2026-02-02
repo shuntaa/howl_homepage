@@ -39,7 +39,7 @@ https://discord.gg/avkhBRHe
 認証が成功すると、自動的にメンバー権限が付与されます。
 
 --------------------------------------------------
-Keio Poker Circle "Howl" System
+Keio Werewolf Circle "Howl" System
 --------------------------------------------------
 """
 
