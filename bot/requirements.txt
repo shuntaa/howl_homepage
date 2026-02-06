@@ -1,4 +1,4 @@
 discord.py
 supabase
 python-dotenv
-flask
+Flask
