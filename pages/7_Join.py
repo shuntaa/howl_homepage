@@ -1,6 +1,7 @@
 import streamlit as st
 from pages._db import init_connection
 import datetime
+import uuid
 
 st.set_page_config(page_title="入部申請", page_icon="📝")
 
@@ -46,12 +47,13 @@ with st.form("join_request_form"):
     col1, col2 = st.columns(2)
     transfer_name = col1.text_input("振込名義人（カナ）", placeholder="例：ケイオウ タロウ")
     transfer_date = col2.date_input("振込日", datetime.date.today())
+    uploaded_file = st.file_uploader("送金明細のスクリーンショット", type=['jpg', 'png', 'jpeg'])
 
     submitted = st.form_submit_button("申請する", type="primary")
 
     if submitted:
-        if not all([name, s_id, player_name, email, transfer_name]):
-            st.error("⚠️ すべての項目を入力してください。")
+        if not all([name, s_id, player_name, email, transfer_name, uploaded_file]):
+            st.error("⚠️ すべての項目を入力・アップロードしてください。")
         elif "@" not in email:
             st.error("⚠️ 正しいメールアドレスを入力してください。")
         else:
@@ -89,9 +91,29 @@ with st.form("join_request_form"):
             # ---------------------------------------------------------
             # ✅ ここまで来たら重複なし -> 申請データを送信
 
+            image_url = None
+            if uploaded_file:
+                try:
+                    # ファイル名をユニークにする (学籍番号_ランダム.拡張子)
+                    file_ext = uploaded_file.name.split('.')[-1]
+                    file_name = f"{s_id}_{uuid.uuid4()}.{file_ext}"
+                    bucket_name = "receipts"
 
-            # ---------------------------------------------------------
-            term_num = transfer_date.year - 2022 # 期数の計算
+                    # アップロード実行
+                    file_bytes = uploaded_file.read()
+                    supabase.storage.from_(bucket_name).upload(
+                        path=file_name,
+                        file=file_bytes,
+                        file_options={"content-type": uploaded_file.type}
+                    )
+                    
+                    # 公開URLを取得
+                    image_url = supabase.storage.from_(bucket_name).get_public_url(file_name)
+                    
+                except Exception as e:
+                    st.error(f"画像のアップロードに失敗しました: {e}")
+                    st.stop()
+
 
             # --- ここで自動計算 (Logic) ---
             # term_number = 振込年 - 2022
@@ -108,11 +130,9 @@ with st.form("join_request_form"):
                     "email": email,
                     "transfer_name": transfer_name,
                     "transfer_date": transfer_date.isoformat(),
-                    
-                    # 計算した期数を送信
                     "term_number": term_num,
-                    
                     "status": "PENDING"
+                    "receipt_url": image_url
                 }
                 supabase.table("membership_requests").insert(data).execute()
 

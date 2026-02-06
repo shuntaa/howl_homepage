@@ -42,19 +42,25 @@ def get_active_players(supabase: Client):
     return response.data
 
 def get_sanitized_players_df(supabase: Client):
-    """【一般画面用】個人情報を除外したプレイヤー一覧をDataFrameで取得"""
+    """【一般・管理者用】表示したいカラムだけを厳選してDataFrameで取得"""
     players_data = get_active_players(supabase)
     if not players_data:
         return pd.DataFrame()
-    
+
     df = pd.DataFrame(players_data)
-    
-    # センシティブな情報をここでドロップ
-    sensitive_columns = ["email", "verification_code", "discord_user_id"]
-    # 存在しない列をドロップしようとするとエラーになるため、存在する列のみを対象とする
-    columns_to_drop = [col for col in sensitive_columns if col in df.columns]
-    
-    return df.drop(columns=columns_to_drop)
+
+    # ★ ここで見せたい列だけをリストアップ！（ホワイトリスト方式）
+    # "student_id": 学籍番号
+    # "name": 名前
+    # "memo": メモ
+    # "is_active": 有効かどうか
+    # "discord_user_id": Discord ID (管理者なら見えてもいいかも？不要なら消してください)
+    target_columns = ["student_id", "name", "real_name", "is_active", "term_number", "faculty", "gender"]
+
+    # データフレームに存在する列だけを抽出（エラー防止）
+    available_cols = [col for col in target_columns if col in df.columns]
+
+    return df[available_cols]
 
 def get_active_players_info(supabase: Client):
     """アクティブなプレイヤーの全情報を取得"""
