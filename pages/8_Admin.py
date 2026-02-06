@@ -105,6 +105,11 @@ else:
                 st.write(f"**振込日:** {row['transfer_date']}")
                 st.write(f"**Email:** {row['email']}")
                 st.caption(f"申請日時: {row['created_at'][:10]}")
+                if 'receipt_url' in row and row['receipt_url']:
+                    st.markdown("---") # 区切り線
+                    st.image(row['receipt_url'], caption="振込明細", width=250)
+                else:
+                    st.caption("※ 明細画像なし")
             
             with col3:
                 # 承認アクション
