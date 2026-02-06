@@ -1,4 +1,3 @@
-cat <<EOF > bot/discord_bot.py
 import discord
 import os
 import asyncio
