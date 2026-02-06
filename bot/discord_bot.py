@@ -69,4 +69,3 @@ async def on_message(message):
 if DISCORD_TOKEN:
     keep_alive()  # Webサーバーを起動！
     client.run(DISCORD_TOKEN)
-EOF
