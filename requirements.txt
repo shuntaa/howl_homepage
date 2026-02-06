@@ -1,5 +1,6 @@
-streamlit
-supabase
-pandas
-numpydiscord.py
 discord.py
+supabase
+python-dotenv
+Flask
+pandas
+numpy
