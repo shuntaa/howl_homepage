@@ -55,7 +55,7 @@ async def on_message(message):
                     except:
                         pass
                     
-                    supabase.table("players").update({"discord_user_id": str(user.id)}).eq("id", player_data['id']).execute()
+                    supabase.table("players").update({"discord_user_id": str(user.id)}).eq("verification_code", player_data['verification_code']).execute()
                     await message.reply(f"✅ 認証成功！ようこそ、{player_data['name']}さん。")
                 else:
                     await message.reply("❌ ロール設定エラー")
@@ -63,7 +63,7 @@ async def on_message(message):
                 await message.reply("❌ 無効なコードです。")
         except Exception as e:
             print(f"Error: {e}")
-            await message.reply("⚠️ エラーが発生しました。")
+            await message.reply(f"⚠️ エラーが発生しました: {e}")
 
 # --- 🚀 ここが最重要！ ---
 if DISCORD_TOKEN:
