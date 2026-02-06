@@ -50,7 +50,7 @@ def get_sanitized_players_df(supabase: Client):
     df = pd.DataFrame(players_data)
     
     # センシティブな情報をここでドロップ
-    sensitive_columns = ["real_name", "term_number", "faculty", "email", "gender"]
+    sensitive_columns = ["email", "verification_code", "discord_user_id"]
     # 存在しない列をドロップしようとするとエラーになるため、存在する列のみを対象とする
     columns_to_drop = [col for col in sensitive_columns if col in df.columns]
     
