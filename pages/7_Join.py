@@ -131,7 +131,7 @@ with st.form("join_request_form"):
                     "transfer_name": transfer_name,
                     "transfer_date": transfer_date.isoformat(),
                     "term_number": term_num,
-                    "status": "PENDING"
+                    "status": "PENDING",
                     "receipt_url": image_url
                 }
                 supabase.table("membership_requests").insert(data).execute()
