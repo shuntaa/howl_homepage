@@ -37,7 +37,7 @@ async def on_message(message):
     if message.channel.id == int(VERIFY_CHANNEL_ID):
         code = message.content.strip()
         try:
-            response = supabase.table("players").select("*").eq("passcode", code).execute()
+            response = supabase.table("players").select("*").eq("verification_code", code).execute()
             if response.data:
                 player_data = response.data[0]
                 if player_data.get("discord_user_id"):
