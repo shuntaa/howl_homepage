@@ -3,7 +3,7 @@ from datetime import date
 import pandas as pd
 
 # プロジェクトルートをパスに追加
-from pages._db import init_connection, get_active_players_info, get_sanitized_players_df
+from modules._db import init_connection, get_active_players_info, get_sanitized_players_df
 
 def show_record_score_page(supabase):
     """成績入力フォームを表示する関数"""

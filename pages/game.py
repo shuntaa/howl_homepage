@@ -6,7 +6,7 @@ import streamlit as st
 import pandas as pd
 import random
 from datetime import date
-from pages._db import init_connection, get_active_players_info, insert_match_results
+from modules._db import init_connection, get_active_players_info, insert_match_results
 
 # --- Constants ---
 PHASE_SETUP = "Setup"

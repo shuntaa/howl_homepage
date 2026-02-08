@@ -1,5 +1,5 @@
 import streamlit as st
-from pages._db import init_connection
+from modules._db import init_connection
 import datetime
 import uuid
 

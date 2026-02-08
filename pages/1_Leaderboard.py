@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 import os
 from datetime import date, datetime
-from pages._db import init_connection, load_data, assign_percentile_title
+from modules._db import init_connection, load_data, assign_percentile_title
 
-from pages._db import init_connection, load_data, assign_percentile_title
+from modules._db import init_connection, load_data, assign_percentile_title
 
 st.header("🏆 Player Rating")
 

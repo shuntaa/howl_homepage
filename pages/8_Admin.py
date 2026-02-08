@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 import string
-from pages._db import init_connection
+from modules._db import init_connection
 
 # --- デバッグ用（確認したらすぐ消すこと！）---
 # st.write("▼ secretsの中身確認")
@@ -11,7 +11,7 @@ from pages._db import init_connection
 
 # メール送信関数をインポート
 try:
-    from pages.utils import send_welcome_email
+    from modules.utils import send_welcome_email
 except ImportError:
     st.error("⚠️ 'pages/utils.py' が見つかりません。メール送信機能が動きません。")
 
