@@ -34,10 +34,14 @@ cols = st.columns(3)
 for i, member in enumerate(members):
     col_idx = i % 3 # 0, 1, 2 のインデックスを繰り返す
     with cols[col_idx]:
-        # 名前を強調
-        st.subheader(member["name"])
-        # 写真を表示 (use_container_widthで枠に合わせる)
+        # ① 役職の描画: st.captionの曖昧な仕様を捨て、明示的な最小ヘッダー(h6)として定義
+        if "role" in member and member["role"]:
+            st.markdown(f"###### {member['role']}") 
+            
+        # ② 名前の描画: 役職との階層構造を明確にするため中ヘッダー(h4)を維持
+        st.markdown(f"#### {member['name']}")
+        
+        # ③ 画像とメッセージの描画
         st.image(member["image"], use_container_width=True)
-        # メッセージ
         st.info(member["message"])
         st.write("") # メンバー間の余白
