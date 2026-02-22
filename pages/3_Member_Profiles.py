@@ -1,26 +1,29 @@
 import streamlit as st
 
 st.header("👥 Member Profiles")
-st.write("Howlを彩る個性豊かなメンバーを紹介します。")
+st.write("Howlの歴代代表を紹介します。")
 st.write("") # スペース
 
 # 1. メンバーデータの定義 (将来的にここを増やすだけでOK)
 # 写真は URL または ローカルのパスを指定します
 members = [
     {
+        "role": "初代代表",
         "name": "土居 隼大(どい しゅんた)",
         "image": "img/member_shunta.JPEG", # サンプル画像URL
-        "message": "人狼ゲームをここ慶應で展開したい!そんな思いで2023年にHowlを設立しました。数十年後のHowl存続を願って、卒業までにどんどん改革していきます！"
+        "message": "人狼ゲームをここ慶應で展開したい!そんな思いで2023年にHowlを設立しました。今後のHowl存続を願って、卒業までにどんどん改革していきます！"
     },
     {
+        "role": "2期代表",
         "name": "山本 祐大(やまもと ゆうだい)",
         "image": "img/member_yamayu.webp",
-        "message": "アットホームな雰囲気が大好きです。対戦後の感想戦も楽しみましょう！"
+        "message": "更新予定✨"
     },
     {
-        "name": "Member C",
+        "role": "3期代表",
+        "name": "泉 凛汰朗(いずみ　りんたろう)",
         "image": "https://via.placeholder.com/150",
-        "message": "Vlogも作っています。サークルの楽しさを広めていきたいです！"
+        "message": "更新予定✨"
     }
 ]
 
