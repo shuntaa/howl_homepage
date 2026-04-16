@@ -8,6 +8,9 @@ try:
 except ImportError:
     send_membership_request_notification = None
 
+if "join_request_submitted" not in st.session_state:
+    st.session_state["join_request_submitted"] = False
+
 st.set_page_config(page_title="入部申請", page_icon="📝")
 
 st.header("📝 Howl 入部申請フォーム")
@@ -76,7 +79,11 @@ with st.form("join_request_form"):
     transfer_date = col2.date_input("振込日", datetime.date.today())
     uploaded_file = st.file_uploader("送金明細のスクリーンショット", type=['jpg', 'png', 'jpeg'])
 
-    submitted = st.form_submit_button("申請する", type="primary")
+    submitted = st.form_submit_button(
+        "申請する",
+        type="primary",
+        disabled=st.session_state["join_request_submitted"]
+    )
 
     if submitted:
         if not all([name, s_id, player_name, email, transfer_name, uploaded_file]):
@@ -98,6 +105,10 @@ with st.form("join_request_form"):
                 # ※ DBのstudent_idが数値型の場合、エラーになることがあるのでキャストする
                 check_sid = supabase.table("players").select("student_id").eq("student_id", int(s_id) if s_id.isdigit() else s_id).execute()
 
+                # 既に入部申請済みか確認（再提出防止）
+                check_request_email = supabase.table("membership_requests").select("id").eq("email", email).limit(1).execute()
+                check_request_sid = supabase.table("membership_requests").select("id").eq("student_id_number", s_id).limit(1).execute()
+
                 # 重複があればエラーを出して止める
                 if check_name.data:
                     st.error(f"❌ プレイヤー名「{player_name}」は既に使用されています。別の名前にしてください。")
@@ -109,6 +120,10 @@ with st.form("join_request_form"):
 
                 if check_sid.data:
                     st.error("❌ その学籍番号は既に登録されています。")
+                    st.stop()
+
+                if check_request_email.data or check_request_sid.data:
+                    st.error("❌ 既に入部申請を受け付けています。重複申請はできません。")
                     st.stop()
 
             except Exception as e:
@@ -170,6 +185,7 @@ with st.form("join_request_form"):
                 else:
                     st.warning("⚠️ 申請は受理されましたが、管理者通知メール機能の読み込みに失敗しました。")
 
+                st.session_state["join_request_submitted"] = True
                 st.success(f"✅ 申請を受け付けました！\nあなたは【{term_num}期生】として登録申請されました。\n入金確認をお待ちください。")
                 st.balloons()
 
