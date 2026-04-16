@@ -3,6 +3,11 @@ from modules._db import init_connection
 import datetime
 import uuid
 
+try:
+    from modules.utils import send_membership_request_notification
+except ImportError:
+    send_membership_request_notification = None
+
 st.set_page_config(page_title="入部申請", page_icon="📝")
 
 st.header("📝 Howl 入部申請フォーム")
@@ -157,6 +162,13 @@ with st.form("join_request_form"):
                     "receipt_url": image_url
                 }
                 supabase.table("membership_requests").insert(data).execute()
+
+                if send_membership_request_notification:
+                    notified = send_membership_request_notification(data)
+                    if not notified:
+                        st.warning("⚠️ 申請は受理されましたが、管理者通知メールの送信に失敗しました。")
+                else:
+                    st.warning("⚠️ 申請は受理されましたが、管理者通知メール機能の読み込みに失敗しました。")
 
                 st.success(f"✅ 申請を受け付けました！\nあなたは【{term_num}期生】として登録申請されました。\n入金確認をお待ちください。")
                 st.balloons()
