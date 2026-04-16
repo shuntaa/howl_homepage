@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 from unittest.mock import MagicMock
-from pages._db import assign_percentile_title
+from modules._db import assign_percentile_title
 
 
 def test_assign_percentile_title():
@@ -44,10 +44,10 @@ def test_init_connection_success(monkeypatch):
     mock_st = MagicMock()
     mock_st.secrets = {"supabase": {"url": "https://test.supabase.co", "key": "test-key"}}
 
-    monkeypatch.setattr("pages._db.create_client", mock_create_client)
-    monkeypatch.setattr("pages._db.st", mock_st)
+    monkeypatch.setattr("modules._db.create_client", mock_create_client)
+    monkeypatch.setattr("modules._db.st", mock_st)
 
-    from pages._db import init_connection
+    from modules._db import init_connection
 
     result = init_connection()
     assert result is mock_client
@@ -66,9 +66,9 @@ def test_load_data_with_mock(monkeypatch):
     mock_supabase = MagicMock()
     mock_supabase.table().select().execute.return_value = mock_response
 
-    monkeypatch.setattr("pages._db.get_player_name_map", lambda supabase: {1: "Player 1", 2: "Player 2"})
+    monkeypatch.setattr("modules._db.get_player_name_map", lambda supabase: {1: "Player 1", 2: "Player 2"})
 
-    from pages._db import load_data
+    from modules._db import load_data
 
     df = load_data(mock_supabase)
     assert len(df) == 2
@@ -89,9 +89,9 @@ def test_get_player_name_map(monkeypatch):
     mock_supabase = MagicMock()
     mock_supabase.table().select().execute.return_value = mock_response
 
-    monkeypatch.setattr("pages._db.get_players", lambda supabase: mock_data)
+    monkeypatch.setattr("modules._db.get_players", lambda supabase: mock_data)
 
-    from pages._db import get_player_name_map
+    from modules._db import get_player_name_map
 
     name_map = get_player_name_map(mock_supabase)
     assert name_map == {1: "Player 1", 2: "Player 2"}
@@ -106,7 +106,7 @@ def test_load_data_empty(monkeypatch):
     mock_supabase = MagicMock()
     mock_supabase.table().select().execute.return_value = mock_response
 
-    from pages._db import load_data
+    from modules._db import load_data
 
     df = load_data(mock_supabase)
     assert df.empty
