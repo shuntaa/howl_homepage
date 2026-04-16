@@ -21,7 +21,7 @@ period_mode = st.radio(
 
 try:
     supabase = init_connection()
-except Exception:
+except Exception as e:
     supabase = None
     st.error(f"接続エラー: {e}")
     st.stop()
