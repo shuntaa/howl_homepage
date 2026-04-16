@@ -8,8 +8,8 @@ def send_welcome_email(to_email, user_name, player_name, verification_code):
     認証コード付きの招待メールを送信する
     """
     
-    line_invite_url = "https://line.me/ti/g/xxxxxxx" # あなたのLINEリンク
-    discord_invite_url = "https://discord.gg/xxxxxxx" # あなたのDiscordリンク
+    line_invite_url = "https://line.me/ti/g/agxLzN8vCj" # あなたのLINEリンク
+    discord_invite_url = "https://discord.gg/avkhBRHe" # あなたのDiscordリンク
 
     subject = "【Howl】入会承認・Discord認証コードのお知らせ"
     
@@ -19,15 +19,16 @@ def send_welcome_email(to_email, user_name, player_name, verification_code):
 
 Howlへの入会申請が承認されました！
 
-▼ Step 1: 以下のコミュニティに参加してください
+▼ Step 1: LINEグループに参加してください
 --------------------------------------------------
-
-🎮 Discordサーバー (活動場所):
-https://discord.gg/avkhBRHe
+{line_invite_url}
 --------------------------------------------------
 
 ▼ Step 2: Discordの認証を行ってください
 セキュリティのため、最初はDiscordの機能が制限されています。
+まず以下のDiscordサーバーに参加してください。
+{discord_invite_url}
+その後、
 サーバー参加後、「#入サー手続き」チャンネルで以下のコマンドを入力してください。
 
 --------------------------------------------------
@@ -36,8 +37,7 @@ https://discord.gg/avkhBRHe
 
 認証が成功すると、自動的にメンバー権限が付与されます。
 
-▼ Step 3: Lineグループに参加
-「#全体報告」チャンネルに固定されているURLからLineグループに参加してください。
+ご不明点があれば、@shuntadoi27@keio.jp までご連絡ください。
 
 --------------------------------------------------
 Keio Werewolf Circle "Howl" System

@@ -21,7 +21,7 @@ members = [
     },
     {
         "role": "3期代表",
-        "name": "泉 凛汰朗(いずみ　りんたろう)",
+        "name": "???",
         "image": "https://via.placeholder.com/150",
         "message": "更新予定✨"
     }
