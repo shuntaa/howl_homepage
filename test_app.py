@@ -110,3 +110,35 @@ def test_load_data_empty(monkeypatch):
 
     df = load_data(mock_supabase)
     assert df.empty
+
+
+def test_resolve_current_env_prefers_secrets(monkeypatch):
+    mock_st = MagicMock()
+    mock_st.secrets = {"ENVIRONMENT": "  Develop "}
+    monkeypatch.setattr("modules.env_banner.st", mock_st)
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    monkeypatch.delenv("STREAMLIT_ENV", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+
+    from modules.env_banner import resolve_current_env
+
+    env, source, raw = resolve_current_env()
+    assert env == "develop"
+    assert source == "secrets.ENVIRONMENT"
+    assert raw.strip() == "Develop"
+
+
+def test_resolve_current_env_falls_back_to_env_var(monkeypatch):
+    mock_st = MagicMock()
+    mock_st.secrets = {}
+    monkeypatch.setattr("modules.env_banner.st", mock_st)
+    monkeypatch.setenv("STREAMLIT_ENV", "dev")
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+
+    from modules.env_banner import resolve_current_env, is_development_env
+
+    env, source, _ = resolve_current_env()
+    assert env == "dev"
+    assert source == "env.STREAMLIT_ENV"
+    assert is_development_env(env) is True

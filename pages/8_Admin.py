@@ -3,7 +3,7 @@ import pandas as pd
 import random
 import string
 from modules._db import init_connection
-from modules.env_banner import show_dev_warning
+from modules.env_banner import show_dev_warning, render_env_diagnostics
 
 # --- デバッグ用（確認したらすぐ消すこと！）---
 # st.write("▼ secretsの中身確認")
@@ -69,6 +69,7 @@ else:
 # 🛡️ ここから管理者機能 (DB接続など)
 # ---------------------------------------------------------
 st.header("🛡️ Howl 管理コンソール (Master Only)")
+render_env_diagnostics()
 
 try:
     supabase = init_connection()
