@@ -7,6 +7,9 @@ import pandas as pd
 import random
 from datetime import date
 from modules._db import init_connection, get_active_players_info, insert_match_results
+from modules.env_banner import show_dev_warning
+
+show_dev_warning()
 
 # --- Constants ---
 PHASE_SETUP = "Setup"

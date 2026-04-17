@@ -1,5 +1,6 @@
 import streamlit as st
 from modules._db import init_connection
+from modules.env_banner import show_dev_warning
 import datetime
 import uuid
 
@@ -12,6 +13,7 @@ if "join_request_submitted" not in st.session_state:
     st.session_state["join_request_submitted"] = False
 
 st.set_page_config(page_title="入部申請", page_icon="📝")
+show_dev_warning()
 
 st.header("📝 Howl 入部申請フォーム")
 

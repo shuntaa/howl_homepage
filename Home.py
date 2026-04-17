@@ -2,7 +2,15 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
+import os
+
+from modules.env_banner import show_dev_warning
+
 from modules._db import init_connection
+
+show_dev_warning()
+
+
 
 st.title("🐺 人狼サークルHowlへようこそ")
 
