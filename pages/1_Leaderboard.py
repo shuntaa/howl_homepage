@@ -4,8 +4,11 @@ import numpy as np
 import os
 from datetime import date, datetime
 from modules._db import init_connection, load_data, assign_percentile_title
+from modules.env_banner import show_dev_warning
 
 from modules._db import init_connection, load_data, assign_percentile_title
+
+show_dev_warning()
 
 st.header("🏆 Player Rating")
 

@@ -3,6 +3,7 @@ import pandas as pd
 import random
 import string
 from modules._db import init_connection
+from modules.env_banner import show_dev_warning
 
 # --- デバッグ用（確認したらすぐ消すこと！）---
 # st.write("▼ secretsの中身確認")
@@ -16,6 +17,7 @@ except ImportError:
     st.error("⚠️ 'pages/utils.py' が見つかりません。メール送信機能が動きません。")
 
 st.set_page_config(page_title="管理者画面", page_icon="🛡️")
+show_dev_warning()
 
 # --- 関数定義 ---
 def generate_code():

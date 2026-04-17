@@ -1,5 +1,8 @@
 import streamlit as st
 from datetime import date
+from modules.env_banner import show_dev_warning
+
+show_dev_warning()
 
 st.header("📅 Schedule / Next Game")
 

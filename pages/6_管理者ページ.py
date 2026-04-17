@@ -4,6 +4,9 @@ import pandas as pd
 
 # プロジェクトルートをパスに追加
 from modules._db import init_connection, get_active_players_info, get_sanitized_players_df
+from modules.env_banner import show_dev_warning
+
+show_dev_warning()
 
 def show_record_score_page(supabase):
     """成績入力フォームを表示する関数"""

@@ -4,14 +4,11 @@ import numpy as np
 
 import os
 
-# Secretsから環境変数を取得（設定されていない場合は 'production' とみなす）
-current_env = st.secrets.get("ENVIRONMENT", "production")
-
-if current_env == "development":
-    # 開発環境の場合のみ、画面上部に強烈な警告バッジを表示する
-    st.error("⚠️ 【開発環境】現在プレビュー版を表示しています。この画面のURLをメンバーに共有しないでください。")
+from modules.env_banner import show_dev_warning
 
 from modules._db import init_connection
+
+show_dev_warning()
 
 
 

@@ -1,4 +1,7 @@
 import streamlit as st
+from modules.env_banner import show_dev_warning
+
+show_dev_warning()
 
 st.header("👥 Member Profiles")
 st.write("Howlの歴代代表を紹介します。")
